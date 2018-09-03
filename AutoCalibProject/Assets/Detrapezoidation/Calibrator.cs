@@ -7,12 +7,14 @@ public class Calibrator : MonoBehaviour
 {
 
     #region VARIABLE
-
+    
+    //worldscreen points
     private GameObject p1 { get { return pP.p1; } }
     private GameObject p2 { get { return pP.p2; } }
     private GameObject p3 { get { return pP.p3; } }
     private GameObject p4 { get { return pP.p4; } }
 
+    //texture corners
     [SerializeField] [HideInInspector] private GameObject pivot;
     [SerializeField] [HideInInspector] private GameObject cornerT_R;
     [SerializeField] [HideInInspector] private GameObject cornerB_L;
@@ -22,8 +24,9 @@ public class Calibrator : MonoBehaviour
     [SerializeField]
     private Camera sceneCamera;
 
-    public float boardWidth = 1.1f;
-    public float boardHeight = 0.75f;
+    //real projection board dimensions
+    public float boardWidth;
+    public float boardHeight;
 
     [SerializeField] [HideInInspector] private PointPlacers pP;
 
@@ -42,7 +45,7 @@ public class Calibrator : MonoBehaviour
             StartCoroutine(Calibrate());
         else
         {
-            Debug.LogError("MISSING ASSETS IN INSPECTOR");
+            Debug.LogError("MISSING CAMERA IN INSPECTOR");
         }
     }
 
@@ -50,6 +53,7 @@ public class Calibrator : MonoBehaviour
 
     // --------------------------------------------------------------------
 
+    //Creation of cusotm editor => automatic setup of calibration tool
     #region EDITOR FUNCTIONS
 
     public void SetupCalibrator()
@@ -136,7 +140,6 @@ public class Calibrator : MonoBehaviour
         plane.transform.SetParent(pivot.transform);
         plane.transform.localPosition = new Vector3(5, -5, 0);
         plane.transform.localRotation = Quaternion.Euler(90, 180, 0);
-        //plane.GetComponent<Renderer>().material = screenMat;
     }
 
     public void SetupSize()
@@ -151,7 +154,8 @@ public class Calibrator : MonoBehaviour
     // --------------------------------------------------------------------
 
     #region RUNTIME FUNCTIONS
-
+    
+    //main calibration method
     public IEnumerator Calibrate()
     {
         SetupSize();
@@ -162,13 +166,14 @@ public class Calibrator : MonoBehaviour
         RotateCameraOnZ();
         PlaceScreen(); // 1 Place pivot On Corner
         StretchScreen(); // 2 scale to stretch other corner
-        FinalAdjustment(); // rotate to place final corner
+        yield return FinalAdjustment(); // Rotate and stretch till final position
 
         SetupTexture();
 
         print("Done");
     }
 
+    //wait untill 4 points have been placed
     public IEnumerator InputCorners()
     {
         pP.createPoints = true;
@@ -178,10 +183,13 @@ public class Calibrator : MonoBehaviour
         }
     }
 
+    //setup pivot
     private void PlaceScreen()
     {
         pivot.transform.position = p4.transform.position;
     }
+
+    //scale width between the 2 top points
     private void StretchScreen()
     {
         while (cornerT_R.transform.position.x < p3.transform.position.x)
@@ -193,45 +201,54 @@ public class Calibrator : MonoBehaviour
             pivot.transform.transform.localScale *= 0.999f;
         }
     }
+
+    //align camera between the 2 top points
     private void RotateCameraOnZ()
     {
         float pente = (p4.transform.position.y - p3.transform.position.y) / (p4.transform.position.x - p3.transform.position.x);
         float angle = -Mathf.Atan(pente);
         calibCam.transform.Rotate(0, 0, angle * Mathf.Rad2Deg);
     }
-    private void FinalAdjustment()
+
+    //rotate on pivot untill angle is 0 with worldscreen then stretch it till bottom point
+    private IEnumerator FinalAdjustment()
     {
-        Vector3 camPos = Camera.main.transform.position;
-        Vector3 cornerPos = cornerB_L.transform.position;
-        Vector3 p1Pos = p1.transform.position;
+        float angle;
+        Vector2 pivotPos = calibCam.WorldToScreenPoint(pivot.transform.position);
+        Vector2 cornerPos = calibCam.WorldToScreenPoint(cornerB_L.transform.position);
+        Vector2 p1Pos = calibCam.WorldToScreenPoint(p1.transform.position);
 
-        //Ray rayCorner = new Ray(camPos, cornerPos - camPos);
-        //Ray rayP1 = new Ray(camPos, p1Pos - camPos);
-
-        float angle = Vector3.Angle(cornerPos - camPos, p1Pos - camPos);
-        float angleP;
-        float rotationFactor = -0.001f;
+        angle = Vector2.Angle(p1Pos - pivotPos, cornerPos - pivotPos);
+        float rotationFactor = -0.0001f;
         if (cornerPos.x > p1Pos.x)
-        {
             rotationFactor *= -1;
-        }
 
         int i = 0;
         do
         {
-            angleP = angle;
-            pivot.transform.Rotate(rotationFactor, 0, 0);
-            Debug.DrawRay(camPos, cornerPos - camPos);
-            Debug.DrawRay(camPos, p1Pos - camPos);
-
-            cornerPos = cornerB_L.transform.position;
-            p1Pos = p1.transform.position;
-
-            angle = Vector3.Angle(cornerPos - camPos, p1Pos - camPos);
+           
+            pivot.transform.Rotate(rotationFactor, 0, 0, Space.Self);
+            cornerPos = calibCam.WorldToScreenPoint(cornerB_L.transform.position);
+            p1Pos = calibCam.WorldToScreenPoint(p1.transform.position);
+            angle = Vector2.Angle(pivotPos - p1Pos, pivotPos - cornerPos);
             i++;
-        } while (angle < angleP && i < 1000000);
+        } while (angle >0 && i < 1000000);
+
+        //scale Y
+        i = 0;
+        pivot.transform.localScale = new Vector3(pivot.transform.localScale.x, 0.001f, pivot.transform.localScale.z);
+        do
+         {
+            pivot.transform.localScale = new Vector3(pivot.transform.localScale.x, pivot.transform.localScale.y +0.01f, pivot.transform.localScale.z);
+            cornerPos = calibCam.WorldToScreenPoint(cornerB_L.transform.position);
+            p1Pos = calibCam.WorldToScreenPoint(p1.transform.position);
+            i++;
+         } while (cornerPos.y > p1Pos.y && i < 1000000);
+
+        yield return null;
     }
 
+    //add the texture 
     private void SetupTexture()
     {
         filmedTexture = new RenderTexture((int)(1000 * boardWidth), (int)(1000 * boardHeight), 1);
