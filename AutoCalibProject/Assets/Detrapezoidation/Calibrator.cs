@@ -144,7 +144,6 @@ public class Calibrator : MonoBehaviour
 
     public void SetupSize()
     {
-        float ratio = boardWidth / boardHeight;
         sceneCamera.rect = new Rect(0, 0, (int)(1000 * boardWidth), (int)(1000 * boardHeight));
         pivot.transform.localScale = new Vector3(boardWidth, boardHeight, 1);
     }
