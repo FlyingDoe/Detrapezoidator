@@ -9,6 +9,7 @@ public class PointPlacers : MonoBehaviour
 
     public bool createPoints = true;
 
+    //points placed in world space at mouse position
     public GameObject p1 { get; private set; }
     public GameObject p2 { get; private set; }
     public GameObject p3 { get; private set; }
@@ -29,7 +30,7 @@ public class PointPlacers : MonoBehaviour
         }
     }
 
-
+    //points creation method
     public void PutPoint(Vector2 mousePosition)
     {
         RaycastHit hit = RayFromCamera(mousePosition, 1000f);
@@ -57,6 +58,7 @@ public class PointPlacers : MonoBehaviour
         }
     }
 
+    //ray from camera to position the point
     public RaycastHit RayFromCamera(Vector3 mousePosition, float rayLength)
     {
         RaycastHit hit;
@@ -65,6 +67,7 @@ public class PointPlacers : MonoBehaviour
         return hit;
     }
 
+    //set points in the right order
     private void SortPoints(GameObject t1, GameObject t2, GameObject t3, GameObject t4)
     {
         float meanX = (t1.transform.position.x + t2.transform.position.x + t3.transform.position.x + t4.transform.position.x) / 4;
@@ -94,21 +97,9 @@ public class PointPlacers : MonoBehaviour
             }
             else
             {
-                Debug.LogErrorFormat("FUCK OOOOFF you nitwit ");
+                Debug.LogErrorFormat("Screen setup toooooo extreme");
             }
         }
 
     }
-
-    //private void SortPoints(params GameObject[] allPoints)
-    //{
-
-    //    foreach (GameObject item in allPoints)
-    //    {
-    //        if item.transform.position.x
-    //    }
-
-
-    //}
-
 }

@@ -731,8 +731,8 @@ MonoBehaviour:
   cornerB_R: {fileID: 2028641352}
   filmedTexture: {fileID: 8400000, guid: e2f22347ec01c1443813e05a8a841fa6, type: 2}
   sceneCamera: {fileID: 918744253}
-  boardWidth: 1
-  boardHeight: 0.76
+  boardWidth: 0.965
+  boardHeight: 0.75
   pP: {fileID: 303666829}
   calibCam: {fileID: 452914214}
   plane: {fileID: 2077207857}
